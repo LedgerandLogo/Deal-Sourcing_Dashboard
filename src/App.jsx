@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient.js';
 import DealDashboard from './DealDashboard.jsx';
+import RegisterPage from './RegisterPage.jsx';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -10,6 +11,11 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
+
+  // Show public register page at /register
+  if (typeof window !== 'undefined' && window.location.pathname === '/register') {
+    return <RegisterPage />;
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -52,33 +58,18 @@ export default function App() {
           {mode === 'signin' ? 'Sign in to your pipeline.' : 'Create an account.'}
         </p>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14 }}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={6}
-            style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14 }}
-          />
+          <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required
+            style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14 }} />
+          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6}
+            style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', fontSize: 14 }} />
           {error && <p style={{ color: '#c0392b', fontSize: 13, margin: 0 }}>{error}</p>}
           {info && <p style={{ color: '#27ae60', fontSize: 13, margin: 0 }}>{info}</p>}
           <button type="submit" style={{ padding: '8px 12px', borderRadius: 6, border: 'none', background: '#1d1d1d', color: '#fff', fontSize: 14, cursor: 'pointer' }}>
             {mode === 'signin' ? 'Sign in' : 'Sign up'}
           </button>
         </form>
-        <button
-          onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo(''); }}
-          style={{ marginTop: 12, background: 'none', border: 'none', color: '#666', fontSize: 13, cursor: 'pointer', padding: 0 }}
-        >
+        <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo(''); }}
+          style={{ marginTop: 12, background: 'none', border: 'none', color: '#666', fontSize: 13, cursor: 'pointer', padding: 0 }}>
           {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
         </button>
       </div>
