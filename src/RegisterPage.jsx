@@ -35,7 +35,7 @@ export default function RegisterPage() {
     
     // Also trigger webhook for Make.com automation
     try {
-      await fetch('https://hook.eu2.make.com/REPLACE_WITH_YOUR_WEBHOOK', {
+      await fetch('https://hook.eu1.make.com/hkbczc1dmhuijv3ys3bmepybw6d2anwu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...payload, email: form.email, source: 'ledgerandlot.org' }),
