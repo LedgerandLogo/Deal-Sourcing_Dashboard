@@ -232,7 +232,7 @@ export default function DealDashboard({ userId }) {
                         {deal.address || 'Untitled deal'}
                       </p>
                       <p style={{ fontSize: 13, color: '#666', margin: '2px 0 0' }}>
-                        {deal.postcode || '—'} · {deal.seller_name || 'No seller name'}
+                        {deal.postcode ? deal.postcode.split(' ')[0] + '**' : '—'} · {deal.seller_name || 'No seller name'}
                       </p>
                     </div>
                     <div style={{ minWidth: 90 }}>
