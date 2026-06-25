@@ -122,8 +122,8 @@ export default function DealDashboard({ userId }) {
   const saveDeal = async (deal) => {
     setError('');
     const payload = { ...deal, user_id: userId };
-    // Fix uuid fields - convert empty strings to null
-    if (!payload.matched_buyer) payload.matched_buyer = null;
+    // Remove fields not in DB schema
+    delete payload.matched_buyer;
     if (!payload.id) delete payload.id;
     let res;
     if (deal.id) {
