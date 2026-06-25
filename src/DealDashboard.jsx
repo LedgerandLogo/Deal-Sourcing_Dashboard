@@ -122,6 +122,9 @@ export default function DealDashboard({ userId }) {
   const saveDeal = async (deal) => {
     setError('');
     const payload = { ...deal, user_id: userId };
+    // Fix uuid fields - convert empty strings to null
+    if (!payload.matched_buyer) payload.matched_buyer = null;
+    if (!payload.id) delete payload.id;
     let res;
     if (deal.id) {
       res = await supabase.from('deals').update(payload).eq('id', deal.id);
