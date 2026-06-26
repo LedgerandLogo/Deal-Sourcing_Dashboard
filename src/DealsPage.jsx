@@ -25,7 +25,7 @@ export default function DealsPage() {
     supabase
       .from('deals')
       .select('id,postcode,asking_price,est_market_value,notes,stage,property_type,created_at')
-      .in('stage', ['New lead', 'Under offer', 'lead', 'offer'])
+      .not('stage', 'eq', 'Completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         setDeals(data || []);
@@ -83,12 +83,10 @@ export default function DealsPage() {
             const bmv = getBMV(deal.asking_price, deal.est_market_value);
             return (
               <div key={deal.id} style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid #eee' }}>
-                {/* Card top bar */}
                 <div style={{ background: '#1a3c5e', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>📍 {maskPostcode(deal.postcode)}</span>
                   <BMVBadge pct={bmv} />
                 </div>
-                {/* Card body */}
                 <div style={{ padding: '18px' }}>
                   {deal.property_type && (
                     <div style={{ fontSize: 12, color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>{deal.property_type}</div>
@@ -127,7 +125,6 @@ export default function DealsPage() {
         </a>
       </div>
 
-      {/* Footer */}
       <div style={{ textAlign: 'center', padding: '1.5rem', fontSize: 12, color: '#bbb', background: '#f4f6f9' }}>
         Postcode districts shown only. Full address released to registered buyers. © 2026 Ledger & Lot | ledgerandlot.org
       </div>
