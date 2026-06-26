@@ -3,6 +3,7 @@ import { supabase } from './supabaseClient.js';
 import DealDashboard from './DealDashboard.jsx';
 import RegisterPage from './RegisterPage.jsx';
 import DealsPage from './DealsPage.jsx';
+import DealsPage from './DealsPage.jsx';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -16,6 +17,9 @@ export default function App() {
   // Show public register page at /register
   if (typeof window !== 'undefined' && window.location.pathname === '/register') {
     return <RegisterPage />;
+  }
+  if (typeof window !== 'undefined' && window.location.pathname === '/deals') {
+    return <DealsPage />;
   }
   if (typeof window !== 'undefined' && window.location.pathname === '/deals') {
     return <DealsPage />;
