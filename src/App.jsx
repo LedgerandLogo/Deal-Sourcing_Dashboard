@@ -3,7 +3,6 @@ import { supabase } from './supabaseClient.js';
 import DealDashboard from './DealDashboard.jsx';
 import RegisterPage from './RegisterPage.jsx';
 import DealsPage from './DealsPage.jsx';
-import DealsPage from './DealsPage.jsx';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -14,12 +13,8 @@ export default function App() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
-  // Show public register page at /register
   if (typeof window !== 'undefined' && window.location.pathname === '/register') {
     return <RegisterPage />;
-  }
-  if (typeof window !== 'undefined' && window.location.pathname === '/deals') {
-    return <DealsPage />;
   }
   if (typeof window !== 'undefined' && window.location.pathname === '/deals') {
     return <DealsPage />;
@@ -55,7 +50,7 @@ export default function App() {
   };
 
   if (loading) {
-    return <div style={{ padding: '2rem', fontFamily: 'sans-serif', color: '#666' }}>Loading…</div>;
+    return <div style={{ padding: '2rem', fontFamily: 'sans-serif', color: '#666' }}>Loading...</div>;
   }
 
   if (!session) {
@@ -78,7 +73,7 @@ export default function App() {
         </form>
         <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo(''); }}
           style={{ marginTop: 12, background: 'none', border: 'none', color: '#666', fontSize: 13, cursor: 'pointer', padding: 0 }}>
-          {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          {mode === 'signin' ? "Don\'t have an account? Sign up" : 'Already have an account? Sign in'}
         </button>
       </div>
     );
