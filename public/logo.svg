@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240">
+  <defs>
+    <style>
+      .logo-bg { fill: #1a3c5e; }
+      .logo-accent { fill: #2e75b6; }
+      .logo-gold { fill: #c9a84c; }
+      .logo-white { fill: #ffffff; }
+      .logo-light { fill: #e8f0f8; }
+      .tagline { fill: #7aa8c7; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="400" height="240" rx="16" class="logo-bg"/>
+  <rect x="0" y="0" width="400" height="6" rx="3" class="logo-gold"/>
+  <g transform="translate(60, 60)">
+    <polygon points="40,0 80,35 0,35" class="logo-gold"/>
+    <rect x="8" y="35" width="64" height="44" class="logo-accent"/>
+    <rect x="28" y="55" width="20" height="24" rx="2" class="logo-bg"/>
+    <rect x="12" y="42" width="14" height="12" rx="1" class="logo-light"/>
+    <rect x="54" y="42" width="14" height="12" rx="1" class="logo-light"/>
+    <rect x="0" y="84" width="80" height="2" class="logo-gold"/>
+    <rect x="0" y="90" width="60" height="2" class="logo-gold" opacity="0.5"/>
+    <rect x="0" y="96" width="40" height="2" class="logo-gold" opacity="0.25"/>
+  </g>
+  <text x="200" y="105" font-family="Georgia,serif" font-size="32" font-weight="700" letter-spacing="1" class="logo-white" text-anchor="middle">Ledger &amp; Lot</text>
+  <line x1="80" y1="120" x2="320" y2="120" stroke="#c9a84c" stroke-width="1" opacity="0.6"/>
+  <text x="200" y="143" font-family="Arial,sans-serif" font-size="12" letter-spacing="3" class="tagline" text-anchor="middle">PROPERTY SOURCING</text>
+  <text x="200" y="170" font-family="Arial,sans-serif" font-size="10" letter-spacing="1" class="tagline" text-anchor="middle" opacity="0.7">ledgerandlot.org</text>
+  <rect x="0" y="220" width="400" height="20" rx="4" class="logo-accent" opacity="0.4"/>
+</svg>
