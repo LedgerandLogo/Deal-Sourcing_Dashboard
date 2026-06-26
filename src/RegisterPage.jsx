@@ -48,7 +48,7 @@ export default function RegisterPage() {
 
   const s = {
     wrap: { fontFamily: "'Segoe UI', Arial, sans-serif", background: '#f7f8fa', minHeight: '100vh', padding: '0' },
-    hero: { background: 'linear-gradient(135deg, #1a3c5e 0%, #2e75b6 100%)', color: '#fff', padding: '3rem 1.5rem 2.5rem', textAlign: 'center' },
+    hero: { background: 'linear-gradient(135deg, #1a3c5e 0%, #2e75b6 100%)', color: '#fff', padding: '2rem 1.5rem 2rem', textAlign: 'center' },
     heroTitle: { fontSize: 32, fontWeight: 700, margin: '0 0 8px' },
     heroSub: { fontSize: 16, opacity: 0.85, margin: 0 },
     card: { maxWidth: 600, margin: '-1.5rem auto 3rem', background: '#fff', borderRadius: 16, padding: '2rem 2rem', boxShadow: '0 4px 24px rgba(0,0,0,0.10)' },
@@ -96,8 +96,7 @@ export default function RegisterPage() {
   return (
     <div style={s.wrap}>
       <div style={s.hero}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🏠</div>
-        <h1 style={s.heroTitle}>Ledger & Lot</h1>
+        <img src="/logo.svg" alt="Ledger & Lot" style={{ width: 180, marginBottom: 12 }} />
         <p style={s.heroSub}>Register to receive exclusive BMV property deals before they hit the market</p>
       </div>
 
