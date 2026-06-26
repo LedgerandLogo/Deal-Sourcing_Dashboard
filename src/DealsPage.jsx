@@ -3,13 +3,18 @@ import { supabase } from './supabaseClient.js';
 
 function maskPostcode(postcode) {
   if (!postcode) return 'Area undisclosed';
-  return postcode.split(' ')[0] + ' ***';
+  const parts = postcode.trim().split(' ');
+  return parts[0] + '**';
 }
 
 function BMVBadge({ pct }) {
   if (!pct) return null;
   const color = pct >= 25 ? '#c0392b' : pct >= 20 ? '#e67e22' : '#27ae60';
-  return <span style={{ background: color, color: '#fff', borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{pct.toFixed(1)}% BMV</span>;
+  return (
+    <span style={{ background: color, color: '#fff', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, display: 'inline-block' }}>
+      {pct.toFixed(1)}% BMV
+    </span>
+  );
 }
 
 export default function DealsPage() {
@@ -17,47 +22,115 @@ export default function DealsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('deals').select('id,postcode,asking_price,est_market_value,notes,stage,created_at')
-      .in('stage', ['lead','offer']).order('created_at', { ascending: false })
-      .then(({ data }) => { setDeals(data || []); setLoading(false); });
+    supabase
+      .from('deals')
+      .select('id,postcode,asking_price,est_market_value,notes,stage,property_type,created_at')
+      .in('stage', ['New lead', 'Under offer', 'lead', 'offer'])
+      .order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        setDeals(data || []);
+        setLoading(false);
+      });
   }, []);
 
   const getBMV = (a, m) => (!a || !m || m <= 0) ? null : ((m - a) / m) * 100;
 
-  const s = {
-    wrap: { fontFamily: "Segoe UI,Arial,sans-serif", background: '#f7f8fa', minHeight: '100vh' },
-    hero: { background: 'linear-gradient(135deg,#1a3c5e,#2e75b6)', color: '#fff', padding: '3rem 1.5rem 2.5rem', textAlign: 'center' },
-    grid: { maxWidth: 900, margin: '2rem auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(260px,1fr))', gap: '1.5rem' },
-    card: { background: '#fff', borderRadius: 14, padding: '1.5rem', boxShadow: '0 2px 16px rgba(0,0,0,0.08)', borderTop: '4px solid #2e75b6' },
-    cta: { display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: 10, borderRadius: 8, textDecoration: 'none', fontWeight: 600, fontSize: 14, marginTop: 12 },
-  };
-
   return (
-    <div style={s.wrap}>
-      <div style={s.hero}>
-        <h1 style={{ fontSize: 32, fontWeight: 700, margin: '0 0 8px' }}>Live BMV Deals</h1>
-        <p style={{ opacity: 0.85, margin: '0 0 1.5rem' }}>Register free to receive full details and be first in line.</p>
-        <a href="/register" style={{ background: '#fff', color: '#1a3c5e', padding: '12px 28px', borderRadius: 8, fontWeight: 700, textDecoration: 'none' }}>Register as a Cash Buyer</a>
+    <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', background: '#f4f6f9', minHeight: '100vh' }}>
+
+      {/* Header */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <span style={{ fontWeight: 700, fontSize: 18, color: '#1a3c5e', letterSpacing: '-0.3px' }}>Ledger & Lot</span>
+          <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>Property Sourcing</span>
+        </div>
+        <a href="/register" style={{ background: '#1a3c5e', color: '#fff', padding: '8px 18px', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+          Register as Buyer
+        </a>
       </div>
-      {loading ? <p style={{ textAlign: 'center', padding: '3rem' }}>Loading...</p> : (
-        <div style={s.grid}>
+
+      {/* Hero */}
+      <div style={{ background: 'linear-gradient(135deg, #1a3c5e 0%, #2e75b6 100%)', color: '#fff', padding: '3rem 1.5rem', textAlign: 'center' }}>
+        <p style={{ fontSize: 12, letterSpacing: 2, textTransform: 'uppercase', opacity: 0.7, margin: '0 0 12px' }}>Cash Buyers Only</p>
+        <h1 style={{ fontSize: 36, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.5px' }}>Live BMV Deals</h1>
+        <p style={{ opacity: 0.85, margin: '0 0 24px', fontSize: 16, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
+          Below-market-value properties sourced across the UK. Register free to receive full addresses and details.
+        </p>
+        <a href="/register" style={{ background: '#fff', color: '#1a3c5e', padding: '13px 32px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15, display: 'inline-block' }}>
+          Register Free → Get Full Details
+        </a>
+      </div>
+
+      {/* Stats bar */}
+      <div style={{ background: '#1a3c5e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'center', gap: '3rem', fontSize: 13 }}>
+        <span>🏠 {deals.length} Active Deals</span>
+        <span>📍 Multiple UK Locations</span>
+        <span>💰 10–30% Below Market Value</span>
+      </div>
+
+      {/* Deals grid */}
+      {loading ? (
+        <p style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>Loading deals...</p>
+      ) : deals.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '4rem' }}>
+          <p style={{ color: '#888', fontSize: 16 }}>No active deals right now.</p>
+          <p style={{ color: '#aaa', fontSize: 14 }}>Register to be first notified when new deals drop.</p>
+          <a href="/register" style={{ background: '#1a3c5e', color: '#fff', padding: '12px 28px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, display: 'inline-block', marginTop: 16 }}>Register Now</a>
+        </div>
+      ) : (
+        <div style={{ maxWidth: 960, margin: '2.5rem auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
           {deals.map(deal => {
             const bmv = getBMV(deal.asking_price, deal.est_market_value);
             return (
-              <div key={deal.id} style={s.card}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: '#1a3c5e' }}>📍 {maskPostcode(deal.postcode)}</div>
-                <div style={{ fontSize: 26, fontWeight: 800, margin: '8px 0 4px' }}>£{deal.asking_price?.toLocaleString()}</div>
-                {deal.est_market_value && <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>Est. market value: £{deal.est_market_value?.toLocaleString()}</div>}
-                <BMVBadge pct={bmv} />
-                <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', margin: '12px 0' }} />
-                <div style={{ fontSize: 13, color: '#555', lineHeight: 1.6 }}>{deal.notes ? deal.notes.substring(0,120) + '...' : 'Contact us for full details.'}</div>
-                <a href="/register" style={s.cta}>Get Full Details</a>
+              <div key={deal.id} style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid #eee' }}>
+                {/* Card top bar */}
+                <div style={{ background: '#1a3c5e', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>📍 {maskPostcode(deal.postcode)}</span>
+                  <BMVBadge pct={bmv} />
+                </div>
+                {/* Card body */}
+                <div style={{ padding: '18px' }}>
+                  {deal.property_type && (
+                    <div style={{ fontSize: 12, color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>{deal.property_type}</div>
+                  )}
+                  <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>
+                    £{deal.asking_price?.toLocaleString() || 'POA'}
+                  </div>
+                  {deal.est_market_value && (
+                    <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>
+                      Est. market value: £{deal.est_market_value?.toLocaleString()}
+                    </div>
+                  )}
+                  <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', margin: '12px 0' }} />
+                  <div style={{ fontSize: 13, color: '#555', lineHeight: 1.6, marginBottom: 16 }}>
+                    {deal.notes ? deal.notes.substring(0, 100) + (deal.notes.length > 100 ? '...' : '') : 'Full details available to registered buyers.'}
+                  </div>
+                  <div style={{ background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#795500', marginBottom: 14 }}>
+                    🔒 Full address & comparables for registered buyers only
+                  </div>
+                  <a href="/register" style={{ display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: '11px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+                    Get Full Details →
+                  </a>
+                </div>
               </div>
             );
           })}
         </div>
       )}
-      <p style={{ textAlign: 'center', fontSize: 12, color: '#bbb', padding: '2rem' }}>Postcode districts only. Full address for registered buyers. © 2026 Ledger & Lot</p>
+
+      {/* Bottom CTA */}
+      <div style={{ background: '#1a3c5e', color: '#fff', textAlign: 'center', padding: '3rem 1.5rem', marginTop: '2rem' }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 12px' }}>Want First Access to Every Deal?</h2>
+        <p style={{ opacity: 0.8, margin: '0 0 24px', fontSize: 15 }}>Join our cash buyer list. Free to register, no obligation.</p>
+        <a href="/register" style={{ background: '#fff', color: '#1a3c5e', padding: '13px 32px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15, display: 'inline-block' }}>
+          Register as a Cash Buyer
+        </a>
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign: 'center', padding: '1.5rem', fontSize: 12, color: '#bbb', background: '#f4f6f9' }}>
+        Postcode districts shown only. Full address released to registered buyers. © 2026 Ledger & Lot | ledgerandlot.org
+      </div>
     </div>
   );
 }
