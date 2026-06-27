@@ -26,7 +26,7 @@ export default function DealsPage() {
     supabase
       .from('deals')
       .select('id,postcode,asking_price,market_value,notes,stage,created_at')
-      ..neq('stage', 'Completed')
+      .neq('stage', 'Completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         setDeals(data || []);
