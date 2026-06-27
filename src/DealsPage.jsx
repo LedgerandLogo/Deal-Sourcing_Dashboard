@@ -25,8 +25,8 @@ export default function DealsPage() {
   useEffect(() => {
     supabase
       .from('deals')
-      .select('id,postcode,asking_price,est_market_value,notes,stage,property_type,created_at')
-      .not('stage', 'eq', 'Completed')
+      .select('id,postcode,asking_price,market_value,notes,stage,created_at')
+      ..neq('stage', 'Completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
         setDeals(data || []);
