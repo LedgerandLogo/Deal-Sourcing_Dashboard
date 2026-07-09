@@ -57,5 +57,3 @@ async function run() {
 }
 
 run();
-Then click Commit changes... (top right, green button) → confirm on the next screen with Commit changes again.
-Once that's done, tell me and I'll give you the next file (scrape/supabase.js).
