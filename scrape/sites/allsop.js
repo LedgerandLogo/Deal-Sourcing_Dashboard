@@ -10,13 +10,13 @@
  * match the real DOM before relying on this in production.
  */
 export async function scrapeAllsop(page) {
-  await page.goto('https://www.allsop.co.uk/residential-auction-view', {
-    waitUntil: 'networkidle',
+  await page.goto('https://www.allsop.co.uk/property-search', {
+    waitUntil: 'domcontentloaded',
     timeout: 45000
   });
   await page.waitForTimeout(2000);
 
-  const cardSelector = '.lot-card, .property-card, [class*="LotCard"]';
+  const cardSelector = '[class*="__lot_container__"]';
   await page.waitForSelector(cardSelector, { timeout: 15000 }).catch(() => {
     console.warn('[allsop] no cards matched — selector likely needs updating, see scrape/inspect.js');
   });
