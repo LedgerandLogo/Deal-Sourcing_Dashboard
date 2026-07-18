@@ -9,7 +9,7 @@
  */
 export async function scrapeBtgEddisons(page) {
   await page.goto('https://www.btgeddisonspropertyauctions.com/properties', {
-    waitUntil: 'networkidle',
+     waitUntil: 'domcontentloaded',
     timeout: 45000
   });
   await page.waitForTimeout(2000);
