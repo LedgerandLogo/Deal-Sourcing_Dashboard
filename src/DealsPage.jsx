@@ -24,8 +24,8 @@ export default function DealsPage() {
 
   useEffect(() => {
     supabase
-      .from('deals')
-      .select('id,postcode,asking_price,market_value,notes,stage,created_at')
+      .from('public_deals')
+      .select('id,postcode,asking_price,market_value,stage,created_at')
       .neq('stage', 'Completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
