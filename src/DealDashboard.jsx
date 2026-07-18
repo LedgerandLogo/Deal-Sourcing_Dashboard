@@ -222,14 +222,14 @@ export default function DealDashboard({ userId }) {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filteredDeals.map(deal => {
+              {filteredDeals.map((deal, index) => {
                 const buyer = buyers.find(b => b.id === deal.buyer_id);
                 const pct = bmvPct(deal.asking_price, deal.market_value);
                 return (
                   <div key={deal.id} style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                     <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                       <p style={{ fontWeight: 500, fontSize: 15, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {deal.address || 'Untitled deal'}
+                        {index + 1}. {deal.address || 'Untitled deal'}
                       </p>
                       <p style={{ fontSize: 13, color: '#666', margin: '2px 0 0' }}>
                         {deal.postcode ? deal.postcode.split(' ')[0] + '**' : '—'} · {deal.seller_name || 'No seller name'}
