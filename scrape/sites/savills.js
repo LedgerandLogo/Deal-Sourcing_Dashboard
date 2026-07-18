@@ -10,12 +10,12 @@
  */
 export async function scrapeSavills(page) {
   await page.goto('https://auctions.savills.co.uk/upcoming-auctions', {
-    waitUntil: 'networkidle',
+    waitUntil: 'domcontentloaded',
     timeout: 45000
   });
   await page.waitForTimeout(2000);
 
-  const cardSelector = '.lot, .property-item, [class*="lot-card"]';
+  const cardSelector = '[class*="sv-property-card"]';
   await page.waitForSelector(cardSelector, { timeout: 15000 }).catch(() => {
     console.warn('[savills] no cards matched — selector likely needs updating, see scrape/inspect.js');
   });
