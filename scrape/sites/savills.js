@@ -2,11 +2,9 @@
  * SAVILLS AUCTIONS
  * https://auctions.savills.co.uk/upcoming-auctions
  *
- * SELECTOR STATUS: UNVERIFIED — same caveat as the other two modules.
- * Savills' listings may be organised by individual auction event rather than
- * one flat list — worth checking during npm run inspect whether this page
- * needs a second click-through step (auction event -> lot list) rather than
- * a single scrape.
+ * Savills embeds lot data as a JSON string inside an inline script
+ * (map_locations: JSON.parse('[...]')) rather than rendering individual
+ * card elements we can select. We extract and parse that string directly.
  */
 export async function scrapeSavills(page) {
   await page.goto('https://auctions.savills.co.uk/upcoming-auctions', {
@@ -14,42 +12,44 @@ export async function scrapeSavills(page) {
     timeout: 45000
   });
 
-  // Dismiss cookie banner if present
-  try {
-    await page.click('button:has-text("AGREE"), button:has-text("Accept")', { timeout: 5000 });
-  } catch {
-    // banner not present, continue
+  const html = await page.content();
+
+  const match = html.match(/map_locations:\s*JSON\.parse\('([\s\S]*?)'\)/);
+  if (!match) {
+    console.warn('[savills] could not find embedded lot data — page structure may have changed');
+    return [];
   }
 
-  await page.waitForTimeout(2000);
+  let jsonString = match[1];
+  jsonString = jsonString
+    .replace(/\\'/g, "'")
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, '\\')
+    .replace(/\\n/g, '')
+    .replace(/\\r/g, '')
+    .replace(/\\t/g, '');
 
-  const cardSelector = '[class*="sv-property-card"]';
-  await page.waitForSelector(cardSelector, { timeout: 15000 }).catch(() => {
-    console.warn('[savills] no cards matched — selector likely needs updating, see scrape/inspect.js');
-  });
+  let rawLots;
+  try {
+    rawLots = JSON.parse(jsonString);
+  } catch (err) {
+    console.warn('[savills] failed to parse embedded lot JSON:', err.message);
+    return [];
+  }
 
-  const lots = await page.$$eval(cardSelector, (cards) =>
-    cards.map((card) => {
-      const text = (sel) => card.querySelector(sel)?.textContent?.trim() || null;
-      const href = card.querySelector('a')?.getAttribute('href') || null;
-
-      return {
-        address: text('.address, [class*="address"], h3, h2'),
-        guide_price_text: text('.price, [class*="price"], [class*="guide"]'),
-        source_url: href
-      };
-    })
-  );
-
-  return lots
-    .filter((l) => l.address && l.source_url)
+  return rawLots
+    .filter((l) => l.name && l.id)
     .map((l) => ({
-      address: l.address,
-      postcode: extractPostcode(l.address),
-      guide_price: parsePrice(l.guide_price_text),
-      status: 'available',
+      address: l.name,
+      postcode:
+        l.address_post_code_1 && l.address_post_code_2
+          ? `${l.address_post_code_1} ${l.address_post_code_2}`
+          : extractPostcode(l.name),
+      guide_price: parsePrice(l.guide_price),
+      status: l.sold === '1' ? 'sold' : l.withdrawn === '1' ? 'withdrawn' : 'available',
       source: 'Savills',
-      source_url: normaliseUrl(l.source_url, 'https://auctions.savills.co.uk'),
+      source_url: l.sefURL ? normaliseUrl(l.sefURL, 'https://auctions.savills.co.uk') : null,
+      auction_lot_number: l.total_lot_number,
       scraped_at: new Date().toISOString()
     }));
 }
@@ -57,12 +57,12 @@ export async function scrapeSavills(page) {
 function extractPostcode(text) {
   if (!text) return null;
   const match = text.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i);
-return match ? match[0].toUpperCase() : null;
+  return match ? match[0].toUpperCase() : null;
 }
 
 function parsePrice(text) {
   if (!text) return null;
-  const match = text.replace(/,/g, '').match(/£?\s*(\d+)/);
+  const match = String(text).replace(/,/g, '').match(/(\d+)/);
   return match ? Number(match[1]) : null;
 }
 
