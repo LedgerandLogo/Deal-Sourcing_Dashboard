@@ -57,4 +57,19 @@ export async function scrapeSavills(page) {
 function extractPostcode(text) {
   if (!text) return null;
   const match = text.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i);
-  return match ? match
+return match ? match[0].toUpperCase() : null;
+}
+
+function parsePrice(text) {
+  if (!text) return null;
+  const match = text.replace(/,/g, '').match(/£?\s*(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+function normaliseUrl(href, base) {
+  try {
+    return new URL(href, base).toString();
+  } catch {
+    return href;
+  }
+}
