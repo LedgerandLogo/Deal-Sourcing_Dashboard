@@ -1,79 +1,81 @@
-/**
- * SAVILLS AUCTIONS
- * https://auctions.savills.co.uk/upcoming-auctions
- *
- * Savills embeds lot data as a JSON string inside an inline script
- * (map_locations: JSON.parse('[...]')) rather than rendering individual
- * card elements we can select. We extract and parse that string directly.
- */
 export async function scrapeSavills(page) {
+  const deals = [];
+
   await page.goto('https://auctions.savills.co.uk/upcoming-auctions', {
     waitUntil: 'domcontentloaded',
-    timeout: 45000
+    timeout: 60000
   });
+  await page.waitForTimeout(3000);
 
-  const html = await page.content();
+  const auctionLinks = await page.$$eval('a', as => as
+    .map(a => a.href)
+    .filter(href => /\/auctions\/\d/.test(href))
+  );
+  const uniqueAuctionLinks = [...new Set(auctionLinks)];
 
-  const match = html.match(/map_locations:\s*JSON\.parse\('([\s\S]*?)'\)/);
-  if (!match) {
-    console.warn('[savills] could not find embedded lot data — page structure may have changed');
-    console.warn('[savills] page URL was:', page.url());
-    console.warn('[savills] html length:', html.length);
-    console.warn('[savills] contains "guide_price"?', html.includes('guide_price'));
-    console.warn('[savills] contains "map_locations"?', html.includes('map_locations'));
-    return [];
+  // UK postcode pattern (e.g. IG10 1BL, SE21 7EP, L7 7AZ)
+  const postcodeRegex = /([A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2})/i;
+
+  for (const auctionUrl of uniqueAuctionLinks) {
+    const auctionPage = await page.context().browser().newPage();
+    try {
+      await auctionPage.goto(auctionUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await auctionPage.waitForTimeout(4000);
+
+      const lots = await auctionPage.$$eval('.lot-right', (nodes, sourceUrl) => nodes.map(node => {
+        const lotNumber = node.querySelector('.lot-number')?.textContent?.trim() || null;
+        const priceText = node.querySelector('.price-container.guide-price .value')?.textContent?.trim() || null;
+        const nameEl = node.querySelector('.lot-name');
+        const address = nameEl?.textContent?.trim() || null;
+        const detailUrl = nameEl?.href || null;
+        const features = Array.from(node.querySelectorAll('.lot-details li')).map(li => li.textContent.trim());
+
+        return {
+          lot_number: lotNumber,
+          address,
+          guide_price_text: priceText,
+          features,
+          source_url: detailUrl,
+          auction_page_url: sourceUrl
+        };
+      }), auctionUrl);
+
+      for (const lot of lots) {
+        if (!lot.address || !lot.guide_price_text) continue;
+
+        const priceDigits = lot.guide_price_text.replace(/[^0-9]/g, '');
+        const askingPrice = priceDigits ? parseInt(priceDigits, 10) : null;
+
+        let auctionDateText = null;
+        const dateLine = lot.features.find(f => /^to be offered on/i.test(f));
+        if (dateLine) {
+          auctionDateText = dateLine.replace(/^to be offered on\s*/i, '').trim();
+        }
+
+        const postcodeMatch = lot.address.match(postcodeRegex);
+        const postcode = postcodeMatch ? postcodeMatch[1].toUpperCase() : null;
+
+        deals.push({
+          source: 'Savills',
+          address: lot.address,
+          postcode,
+          asking_price: askingPrice,
+          guide_price_text: lot.guide_price_text,
+          auction_date_text: auctionDateText,
+          auction_type: 'Auction',
+          price_type: 'Guide Price',
+          source_url: lot.source_url || lot.auction_page_url,
+          notes: lot.features.join(' | '),
+          stage: 'lead'
+        });
+      }
+    } catch (err) {
+      console.error(`[savills] failed on auction page ${auctionUrl}:`, err.message);
+    } finally {
+      await auctionPage.close();
+    }
   }
 
-  let jsonString = match[1];
-  jsonString = jsonString
-    .replace(/\\'/g, "'")
-    .replace(/\\"/g, '"')
-    .replace(/\\\\/g, '\\')
-    .replace(/\\n/g, '')
-    .replace(/\\r/g, '')
-    .replace(/\\t/g, '');
-
-  let rawLots;
-  try {
-    rawLots = JSON.parse(jsonString);
-  } catch (err) {
-    console.warn('[savills] failed to parse embedded lot JSON:', err.message);
-    return [];
-  }
-
-  return rawLots
-    .filter((l) => l.name && l.id)
-    .map((l) => ({
-      address: l.name,
-      postcode:
-        l.address_post_code_1 && l.address_post_code_2
-          ? `${l.address_post_code_1} ${l.address_post_code_2}`
-          : extractPostcode(l.name),
-      guide_price: parsePrice(l.guide_price),
-      status: l.sold === '1' ? 'sold' : l.withdrawn === '1' ? 'withdrawn' : 'available',
-      source: 'Savills',
-      source_url: l.sefURL ? normaliseUrl(l.sefURL, 'https://auctions.savills.co.uk') : null,
-      auction_lot_number: l.total_lot_number,
-      scraped_at: new Date().toISOString()
-    }));
-}
-
-function extractPostcode(text) {
-  if (!text) return null;
-  const match = text.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i);
-  return match ? match[0].toUpperCase() : null;
-}
-
-function parsePrice(text) {
-  if (!text) return null;
-  const match = String(text).replace(/,/g, '').match(/(\d+)/);
-  return match ? Number(match[1]) : null;
-}
-
-function normaliseUrl(href, base) {
-  try {
-    return new URL(href, base).toString();
-  } catch {
-    return href;
-  }
+  console.log(`[savills] scraped ${deals.length} lots across ${uniqueAuctionLinks.length} auction(s)`);
+  return deals;
 }
