@@ -13,6 +13,14 @@ export async function scrapeSavills(page) {
     waitUntil: 'domcontentloaded',
     timeout: 45000
   });
+
+  // Dismiss cookie banner if present
+  try {
+    await page.click('button:has-text("AGREE"), button:has-text("Accept")', { timeout: 5000 });
+  } catch {
+    // banner not present, continue
+  }
+
   await page.waitForTimeout(2000);
 
   const cardSelector = '[class*="sv-property-card"]';
@@ -49,19 +57,4 @@ export async function scrapeSavills(page) {
 function extractPostcode(text) {
   if (!text) return null;
   const match = text.match(/[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}/i);
-  return match ? match[0].toUpperCase() : null;
-}
-
-function parsePrice(text) {
-  if (!text) return null;
-  const match = text.replace(/,/g, '').match(/£?\s*(\d+)/);
-  return match ? Number(match[1]) : null;
-}
-
-function normaliseUrl(href, base) {
-  try {
-    return new URL(href, base).toString();
-  } catch {
-    return href;
-  }
-}
+  return match ? match
