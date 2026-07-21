@@ -5,7 +5,8 @@ import { supabase } from './supabaseClient.js';
 function maskPostcode(postcode) {
   if (!postcode) return 'Area undisclosed';
   const parts = postcode.trim().split(' ');
-  return parts[0] + '**';
+  if (parts.length < 2 || !parts[1]) return parts[0] + '**';
+  return parts[0] + ' ' + parts[1][0] + '**';
 }
 
 function BMVBadge({ pct }) {
@@ -36,7 +37,6 @@ export default function DealsPage() {
         setLoading(false);
       });
   }, []);
-
   return (
     <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', background: '#f4f6f9', minHeight: '100vh' }}>
 
@@ -69,7 +69,6 @@ export default function DealsPage() {
         <span>📍 Multiple UK Locations</span>
         <span>💰 20%+ Below Market Value</span>
       </div>
-
       {/* Deals grid */}
       {loading ? (
         <p style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>Loading deals...</p>
