@@ -1,4 +1,4 @@
-// Ledger & Lot Public Deals Page v2
+// Ledger & Lot Public Deals Page v3
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient.js';
 
@@ -25,16 +25,17 @@ export default function DealsPage() {
   useEffect(() => {
     supabase
       .from('public_deals')
-      .select('id,postcode,asking_price,market_value,stage,created_at')
+      .select('id,postcode,asking_price,market_value,notes,stage,created_at')
       .neq('stage', 'Completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        setDeals(data || []);
+        const getBMV = (a, m) => (!a || !m || m <= 0) ? null : ((m - a) / m) * 100;
+        const withBMV = (data || []).map(d => ({ ...d, bmvPct: getBMV(d.asking_price, d.market_value) }));
+        const shortlisted = withBMV.filter(d => d.bmvPct !== null && d.bmvPct >= 20);
+        setDeals(shortlisted);
         setLoading(false);
       });
   }, []);
-
-  const getBMV = (a, m) => (!a || !m || m <= 0) ? null : ((m - a) / m) * 100;
 
   return (
     <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', background: '#f4f6f9', minHeight: '100vh' }}>
@@ -66,7 +67,7 @@ export default function DealsPage() {
       <div style={{ background: '#1a3c5e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'center', gap: '3rem', fontSize: 13 }}>
         <span>🏠 {deals.length} Active Deals</span>
         <span>📍 Multiple UK Locations</span>
-        <span>💰 10–30% Below Market Value</span>
+        <span>💰 20%+ Below Market Value</span>
       </div>
 
       {/* Deals grid */}
@@ -80,40 +81,34 @@ export default function DealsPage() {
         </div>
       ) : (
         <div style={{ maxWidth: 960, margin: '2.5rem auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-          {deals.map(deal => {
-            const bmv = getBMV(deal.asking_price, deal.est_market_value);
-            return (
-              <div key={deal.id} style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid #eee' }}>
-                <div style={{ background: '#1a3c5e', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>📍 {maskPostcode(deal.postcode)}</span>
-                  <BMVBadge pct={bmv} />
-                </div>
-                <div style={{ padding: '18px' }}>
-                  {deal.property_type && (
-                    <div style={{ fontSize: 12, color: '#888', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>{deal.property_type}</div>
-                  )}
-                  <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>
-                    £{deal.asking_price?.toLocaleString() || 'POA'}
-                  </div>
-                  {deal.est_market_value && (
-                    <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>
-                      Est. market value: £{deal.est_market_value?.toLocaleString()}
-                    </div>
-                  )}
-                  <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', margin: '12px 0' }} />
-                  <div style={{ fontSize: 13, color: '#555', lineHeight: 1.6, marginBottom: 16 }}>
-                    {deal.notes ? deal.notes.substring(0, 100) + (deal.notes.length > 100 ? '...' : '') : 'Full details available to registered buyers.'}
-                  </div>
-                  <div style={{ background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#795500', marginBottom: 14 }}>
-                    🔒 Full address & comparables for registered buyers only
-                  </div>
-                  <a href="/register" style={{ display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: '11px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-                    Get Full Details →
-                  </a>
-                </div>
+          {deals.map(deal => (
+            <div key={deal.id} style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid #eee' }}>
+              <div style={{ background: '#1a3c5e', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>📍 {maskPostcode(deal.postcode)}</span>
+                <BMVBadge pct={deal.bmvPct} />
               </div>
-            );
-          })}
+              <div style={{ padding: '18px' }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>
+                  £{deal.asking_price?.toLocaleString() || 'POA'}
+                </div>
+                {deal.market_value && (
+                  <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>
+                    Est. market value: £{deal.market_value?.toLocaleString()}
+                  </div>
+                )}
+                <hr style={{ border: 'none', borderTop: '1px solid #f0f0f0', margin: '12px 0' }} />
+                <div style={{ fontSize: 13, color: '#555', lineHeight: 1.6, marginBottom: 16 }}>
+                  {deal.notes ? deal.notes.substring(0, 100) + (deal.notes.length > 100 ? '...' : '') : 'Full details available to registered buyers.'}
+                </div>
+                <div style={{ background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#795500', marginBottom: 14 }}>
+                  🔒 Full address & comparables for registered buyers only
+                </div>
+                <a href="/register" style={{ display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: '11px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+                  Get Full Details →
+                </a>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -127,7 +122,7 @@ export default function DealsPage() {
       </div>
 
       <div style={{ textAlign: 'center', padding: '1.5rem', fontSize: 12, color: '#bbb', background: '#f4f6f9' }}>
-        Postcode districts shown only. Full address released to registered buyers. © 2026 Ledger & Lot | ledgerandlot.org
+        Estimated market value calculated automatically; not independently verified. Postcode districts shown only. Full address released to registered buyers. © 2026 Ledger & Lot | ledgerandlot.org
       </div>
     </div>
   );
