@@ -61,11 +61,9 @@ export default function RegisterPage() {
   };
 
   const documents = [
-    { name: 'Hot Auction Deals — July 2026', file: '/docs/LedgerAndLot_HotAuctionDeals_July2026.docx', icon: '🏠' },
-    { name: 'Property Sourcing Agreement', file: '/docs/LedgerAndLot_PropertySourcingAgreement.docx', icon: '📄' },
-    { name: "Finder's Fee & Commission Agreement", file: '/docs/LedgerAndLot_FindersFeeAgreement.docx', icon: '💼' },
-    { name: 'Non-Circumvention Agreement', file: '/docs/LedgerAndLot_NonCircumventionAgreement.docx', icon: '🔒' },
-    { name: 'Reply Templates & Automation Guide', file: '/docs/LedgerAndLot_ReplyTemplates_Automation.docx', icon: '✉️' },
+    { name: 'Property Sourcing Agreement', file: '/legal/property-sourcing-agreement.pdf', icon: '📄' },
+    { name: "Finder's Fee & Commission Agreement", file: '/legal/finders-fee-commission-agreement.pdf', icon: '💼' },
+    { name: 'Non-Circumvention Agreement', file: '/legal/non-circumvention-agreement.pdf', icon: '🔒' },
   ];
 
   if (submitted) return (
