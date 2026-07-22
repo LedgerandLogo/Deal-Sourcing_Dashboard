@@ -111,6 +111,23 @@ export default function DealsPage() {
         </div>
       )}
 
+      {/* Documents & Resources */}
+      <div style={{ maxWidth: 960, margin: '2.5rem auto', padding: '0 1.5rem' }}>
+        <div style={{ background: '#fff', borderRadius: 14, padding: '1.5rem 1.75rem', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid #eee' }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#1a3c5e', margin: '0 0 12px' }}>Documents & Resources</h3>
+          {[
+            { name: 'Property Sourcing Agreement', file: '/legal/property-sourcing-agreement.pdf', icon: '📄' },
+            { name: "Finder's Fee & Commission Agreement", file: '/legal/finders-fee-commission-agreement.pdf', icon: '💼' },
+            { name: 'Non-Circumvention Agreement', file: '/legal/non-circumvention-agreement.pdf', icon: '🔒' },
+          ].map(d => (
+            <a key={d.file} href={d.file} download style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #f0f0f0', textDecoration: 'none', color: '#1a3c5e', fontSize: 14, fontWeight: 500 }}>
+              <span style={{ fontSize: 20 }}>{d.icon}</span> {d.name}
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: '#888' }}>Download ↓</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
       {/* Bottom CTA */}
       <div style={{ background: '#1a3c5e', color: '#fff', textAlign: 'center', padding: '3rem 1.5rem', marginTop: '2rem' }}>
         <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 12px' }}>Want First Access to Every Deal?</h2>
