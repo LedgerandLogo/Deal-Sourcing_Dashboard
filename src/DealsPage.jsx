@@ -26,13 +26,14 @@ export default function DealsPage() {
   useEffect(() => {
     supabase
       .from('public_deals')
-      .select('id,postcode,asking_price,market_value,notes,stage,created_at')
+      .select('id,postcode,asking_price,market_value,notes,stage,created_at,bmv_discount_pct,is_bmv')
       .neq('stage', 'Completed')
       .order('created_at', { ascending: false })
       .then(({ data, error }) => {
-        const getBMV = (a, m) => (!a || !m || m <= 0) ? null : ((m - a) / m) * 100;
-        const withBMV = (data || []).map(d => ({ ...d, bmvPct: getBMV(d.asking_price, d.market_value) }));
-        const shortlisted = withBMV.filter(d => d.bmvPct !== null && d.bmvPct >= 20);
+        // bmv_discount_pct and is_bmv are now computed server-side in the public_deals view,
+        // based on real Land Registry comps. No client-side math needed, and overpriced /
+        // data-quality-flagged deals are already excluded by the view itself.
+        const shortlisted = (data || []).filter(d => d.is_bmv);
         setDeals(shortlisted);
         setLoading(false);
       });
@@ -84,7 +85,7 @@ export default function DealsPage() {
             <div key={deal.id} style={{ background: '#fff', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', border: '1px solid #eee' }}>
               <div style={{ background: '#1a3c5e', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>📍 {maskPostcode(deal.postcode)}</span>
-                <BMVBadge pct={deal.bmvPct} />
+                <BMVBadge pct={deal.bmv_discount_pct} />
               </div>
               <div style={{ padding: '18px' }}>
                 <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>
