@@ -66,6 +66,14 @@ function BmvBadge({ pct }) {
   );
 }
 
+function ArchivedBadge() {
+  return (
+    <span style={{ background: '#eee', color: '#666', fontSize: 12, fontWeight: 500, padding: '2px 8px', borderRadius: 6 }}>
+      Archived
+    </span>
+  );
+}
+
 export default function DealDashboard({ userId }) {
   const [deals, setDeals] = useState([]);
   const [buyers, setBuyers] = useState([]);
@@ -90,8 +98,14 @@ export default function DealDashboard({ userId }) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Deals auto-archived by the nightly Supabase job (30+ days untouched, no buyer, still 'lead')
+  // are excluded from the normal active pipeline view/stats, but never deleted -- they can
+  // always be restored from the "Archived" tab below.
+  const activeDeals = useMemo(() => deals.filter(d => !d.archived_at), [deals]);
+  const archivedDeals = useMemo(() => deals.filter(d => d.archived_at), [deals]);
+
   const stats = useMemo(() => {
-    const active = deals.filter(d => d.stage !== 'completed');
+    const active = activeDeals.filter(d => d.stage !== 'completed');
     const completed = deals.filter(d => d.stage === 'completed');
     const avgBmv = (() => {
       const vals = active.map(d => bmvPct(d.asking_price, d.market_value)).filter(v => v !== null);
@@ -104,20 +118,21 @@ export default function DealDashboard({ userId }) {
       const pct = parseFloat(d.sourcing_fee_pct) || 0;
       return sum + (a * pct / 100);
     }, 0);
-    return { activeCount: active.length, completedCount: completed.length, avgBmv, pipelineValue, estFees };
-  }, [deals]);
+    return { activeCount: active.length, completedCount: completed.length, archivedCount: archivedDeals.length, avgBmv, pipelineValue, estFees };
+  }, [activeDeals, archivedDeals, deals]);
 
   const filteredDeals = useMemo(() => {
-    if (filterStage === 'all') return deals;
-    return deals.filter(d => d.stage === filterStage);
-  }, [deals, filterStage]);
+    if (filterStage === 'archived') return archivedDeals;
+    if (filterStage === 'all') return activeDeals;
+    return activeDeals.filter(d => d.stage === filterStage);
+  }, [activeDeals, archivedDeals, filterStage]);
 
   const dealsByStage = useMemo(() => {
     const map = {};
     STAGES.forEach(s => { map[s.id] = []; });
-    deals.forEach(d => { if (map[d.stage]) map[d.stage].push(d); });
+    activeDeals.forEach(d => { if (map[d.stage]) map[d.stage].push(d); });
     return map;
-  }, [deals]);
+  }, [activeDeals]);
 
   const saveDeal = async (deal) => {
     setError('');
@@ -144,6 +159,13 @@ export default function DealDashboard({ userId }) {
   const moveStage = async (id, stage) => {
     setError('');
     const res = await supabase.from('deals').update({ stage }).eq('id', id);
+    if (res.error) setError(res.error.message);
+    else loadData();
+  };
+
+  const restoreDeal = async (id) => {
+    setError('');
+    const res = await supabase.from('deals').update({ archived_at: null }).eq('id', id);
     if (res.error) setError(res.error.message);
     else loadData();
   };
@@ -206,6 +228,7 @@ export default function DealDashboard({ userId }) {
             <StatCard label="Pipeline value" value={gbp(stats.pipelineValue)} sub="asking price, active deals" />
             <StatCard label="Est. sourcing fees" value={gbp(stats.estFees)} sub="if all active deals complete" />
             <StatCard label="Completed" value={stats.completedCount} />
+            <StatCard label="Archived" value={stats.archivedCount} sub="30+ days untouched, no buyer" />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -216,6 +239,9 @@ export default function DealDashboard({ userId }) {
                   {s.label} ({dealsByStage[s.id].length})
                 </button>
               ))}
+              <button onClick={() => setFilterStage('archived')} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: filterStage === 'archived' ? '#f0f0f0' : '#fff', cursor: 'pointer', color: '#666' }}>
+                Archived ({stats.archivedCount})
+              </button>
             </div>
             <button onClick={() => setEditingDeal(emptyDeal())} style={{ fontSize: 13, padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}>
               + Add deal
@@ -224,15 +250,16 @@ export default function DealDashboard({ userId }) {
 
           {filteredDeals.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 0', color: '#999', fontSize: 14 }}>
-              No deals here yet. Add one to start tracking it.
+              {filterStage === 'archived' ? 'No archived deals yet.' : 'No deals here yet. Add one to start tracking it.'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filteredDeals.map((deal, index) => {
                 const buyer = buyers.find(b => b.id === deal.buyer_id);
                 const pct = bmvPct(deal.asking_price, deal.market_value);
+                const isArchived = !!deal.archived_at;
                 return (
-                  <div key={deal.id} style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <div key={deal.id} style={{ background: isArchived ? '#fafafa' : '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', opacity: isArchived ? 0.75 : 1 }}>
                     <div style={{ flex: '1 1 200px', minWidth: 0 }}>
                       <p style={{ fontWeight: 500, fontSize: 15, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {index + 1}. {deal.address || 'Untitled deal'}
@@ -246,14 +273,20 @@ export default function DealDashboard({ userId }) {
                       <p style={{ fontSize: 14, fontWeight: 500, margin: '2px 0 0' }}>{gbp(deal.asking_price)}</p>
                     </div>
                     <div style={{ minWidth: 90 }}>
-                      <BmvBadge pct={pct} />
+                      {isArchived ? <ArchivedBadge /> : <BmvBadge pct={pct} />}
                     </div>
                     <div style={{ minWidth: 110, fontSize: 13, color: '#666' }}>
                       {buyer ? buyer.name : 'No buyer matched'}
                     </div>
-                    <select value={deal.stage} onChange={(e) => moveStage(deal.id, e.target.value)} style={{ fontSize: 13, minWidth: 130, padding: '6px 8px', borderRadius: 6, border: '1px solid #ccc' }}>
-                      {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                    </select>
+                    {isArchived ? (
+                      <button onClick={() => restoreDeal(deal.id)} style={{ fontSize: 13, minWidth: 130, padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}>
+                        Restore to pipeline
+                      </button>
+                    ) : (
+                      <select value={deal.stage} onChange={(e) => moveStage(deal.id, e.target.value)} style={{ fontSize: 13, minWidth: 130, padding: '6px 8px', borderRadius: 6, border: '1px solid #ccc' }}>
+                        {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                      </select>
+                    )}
                     <button onClick={() => setEditingDeal(deal)} style={{ fontSize: 13, padding: '6px 10px', borderRadius: 6, border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}>
                       Edit
                     </button>
