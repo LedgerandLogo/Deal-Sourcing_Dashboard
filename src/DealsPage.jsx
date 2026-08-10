@@ -1,4 +1,4 @@
-// Ledger & Lot Public Deals Page v3
+// Ledger & Lot Public Deals Page v4
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient.js';
 
@@ -25,13 +25,11 @@ export default function DealsPage() {
 
   useEffect(() => {
     supabase
-      .from('public_deals')
-      .select('id,postcode,asking_price,market_value,notes,stage,created_at,bmv_discount_pct,is_bmv')
-      .neq('stage', 'Completed')
-      .order('created_at', { ascending: false })
+      .from('premium_deals')
+      .select('id,postcode,asking_price,market_value,notes,stage,created_at,bmv_discount_pct')
+      .order('bmv_discount_pct', { ascending: false })
       .then(({ data, error }) => {
-        const shortlisted = (data || []).filter(d => d.is_bmv);
-        setDeals(shortlisted);
+        setDeals(data || []);
         setLoading(false);
       });
   }, []);
@@ -63,7 +61,7 @@ export default function DealsPage() {
       <div style={{ background: '#1a3c5e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'center', gap: '3rem', fontSize: 13 }}>
         <span>Active Deals: {deals.length}</span>
         <span>Multiple UK Locations</span>
-        <span>20%+ Below Market Value</span>
+        <span>30%+ Below Market Value</span>
       </div>
 
       {loading ? (
