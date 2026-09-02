@@ -23,17 +23,17 @@ export default function DealsPage() {
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+    useEffect(() => {
     supabase
       .from('premium_deals')
       .select('id,postcode,asking_price,market_value,notes,stage,created_at,bmv_discount_pct')
       .order('bmv_discount_pct', { ascending: false })
       .then(({ data, error }) => {
+        if (error) console.error('Failed to load deals:', error);
         setDeals(data || []);
         setLoading(false);
       });
   }, []);
-
   return (
     <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', background: '#f4f6f9', minHeight: '100vh' }}>
 
