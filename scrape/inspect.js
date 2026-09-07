@@ -20,7 +20,7 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 
 const targets = [
-  { name: 'allsop', url: 'https://www.allsop.co.uk/residential-auction-view' },
+  { name: 'allsop', url: 'https://www.allsop.co.uk/property-search?available_only=true&lot_type=residential&page=1&view=list' },
   { name: 'btg-eddisons', url: 'https://www.btgeddisonspropertyauctions.com/properties' },
   { name: 'savills', url: 'https://auctions.savills.co.uk/upcoming-auctions' }
 ];

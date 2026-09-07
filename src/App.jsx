@@ -16,7 +16,16 @@ export default function App() {
   if (typeof window !== 'undefined' && window.location.pathname === '/register') {
     return <RegisterPage />;
   }
-  if (typeof window !== 'undefined' && window.location.pathname === '/deals') {
+  // The public deal list is now the homepage. /deals is kept as an alias
+  // so any existing bookmarks or shared links still work.
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
+  if (path === '/' || path === '/deals') {
+    return <DealsPage />;
+  }
+  // The sign-in form and internal pipeline dashboard now live at /app,
+  // instead of sitting on the root domain where a first-time visitor
+  // used to land on a bare login box with no context.
+  if (path !== '/app') {
     return <DealsPage />;
   }
 
@@ -73,7 +82,7 @@ export default function App() {
         </form>
         <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); setInfo(''); }}
           style={{ marginTop: 12, background: 'none', border: 'none', color: '#666', fontSize: 13, cursor: 'pointer', padding: 0 }}>
-          {mode === 'signin' ? "Don\'t have an account? Sign up" : 'Already have an account? Sign in'}
+          {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
         </button>
       </div>
     );
