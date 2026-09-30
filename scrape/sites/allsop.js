@@ -1,52 +1,95 @@
 /**
  * ALLSOP — residential auction catalogue
- * https://www.allsop.co.uk/residential-auction-view
+ * https://www.allsop.co.uk/property-search
  *
- * SELECTOR STATUS: UNVERIFIED. Allsop's catalogue is a JS-rendered app —
- * it could not be inspected from the build environment. The selectors below
- * are a reasonable first guess based on typical listing-card markup, but
- * WILL likely need correcting. Run npm run inspect locally, open
- * inspect-output/allsop.html, and adjust the selectors in this file to
- * match the real DOM before relying on this in production.
+ * SELECTOR STATUS: VERIFIED against rendered HTML saved on 30 Sep 2026
+ * (npm run inspect). Card class is ".__lot_container" (NOT "__lot_container__").
+ *
+ * Allsop cards have no per-lot URL in the DOM (every "View Lot" link is just
+ * "lot-overview"), so source_url is a synthetic but stable key built from the
+ * lot reference + postcode. It opens the search page, not the individual lot.
+ *
+ * Columns written match the Supabase `deals` table exactly (same as Savills).
  */
+const BASE = 'https://www.allsop.co.uk';
+const SEARCH_URL = `${BASE}/property-search?available_only=true&lot_type=residential&view=list`;
+const CARD = '.__lot_container';
+const MAX_PAGES = 10;
+
 export async function scrapeAllsop(page) {
-  await page.goto('https://www.allsop.co.uk/property-search', {
-    waitUntil: 'domcontentloaded',
-    timeout: 45000
-  });
-  await page.waitForTimeout(2000);
+  const all = [];
+  const seen = new Set();
 
-  const cardSelector = '[class*="__lot_container__"]';
-  await page.waitForSelector(cardSelector, { timeout: 15000 }).catch(() => {
-    console.warn('[allsop] no cards matched — selector likely needs updating, see scrape/inspect.js');
-  });
+  for (let p = 1; p <= MAX_PAGES; p++) {
+    await page.goto(`${SEARCH_URL}&page=${p}`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 45000
+    });
 
-  const lots = await page.$$eval(cardSelector, (cards) =>
-    cards.map((card) => {
-      const text = (sel) => card.querySelector(sel)?.textContent?.trim() || null;
-      const href = card.querySelector('a')?.getAttribute('href') || null;
+    const found = await page
+      .waitForSelector(CARD, { timeout: 20000 })
+      .then(() => true)
+      .catch(() => false);
 
-      return {
-        address: text('.lot-address, [class*="address"], h3, h2'),
-        guide_price_text: text('.lot-price, [class*="price"], [class*="guide"]'),
-        lot_number: text('.lot-number, [class*="lotNumber"]'),
-        source_url: href
-      };
-    })
-  );
+    if (!found) {
+      if (p === 1) {
+        console.warn('[allsop] no cards matched on page 1 — selector or page layout changed, re-run npm run inspect');
+      }
+      break;
+    }
+    await page.waitForTimeout(1500);
 
-  return lots
-    .filter((l) => l.address && l.source_url)
-    .map((l) => ({
-      address: l.address,
-      postcode: extractPostcode(l.address),
-      guide_price: parsePrice(l.guide_price_text),
-      status: 'available',
-      source: 'Allsop',
-      source_url: normaliseUrl(l.source_url, 'https://www.allsop.co.uk'),
-      auction_lot_number: l.lot_number,
-      scraped_at: new Date().toISOString()
-    }));
+    const cards = await page.$$eval(CARD, (nodes) =>
+      nodes.map((card) => {
+        const text = (sel) => card.querySelector(sel)?.textContent?.replace(/\s+/g, ' ').trim() || null;
+        return {
+          ref: card.querySelector('.__lot_image')?.getAttribute('title') || null,
+          address: text('.__lot_address'),
+          price_text: text('.__lot_price'),
+          headline: text('.__info_header h4'),
+          features: Array.from(card.querySelectorAll('.__list_feature'))
+            .map((li) => li.textContent.replace(/\s+/g, ' ').trim())
+            .filter(Boolean),
+          date_text: text('.__date'),
+          tenure_note: text('.__rentValueText')
+        };
+      })
+    );
+
+    let newOnThisPage = 0;
+    for (const c of cards) {
+      if (!c.address) continue;
+      const postcode = extractPostcode(c.address);
+      const key = `${c.ref || ''}|${postcode || c.address}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      newOnThisPage++;
+
+      const priceDigits = parsePrice(c.price_text);
+      const notes = [c.headline, c.tenure_note, ...c.features].filter(Boolean).join(' | ');
+
+      all.push({
+        source: 'Allsop',
+        address: c.address,
+        postcode,
+        asking_price: priceDigits,
+        guide_price_text: c.price_text,
+        auction_date_text: c.date_text,
+        auction_type: 'Auction',
+        price_type: 'Guide Price',
+        source_url: `${BASE}/property-search#${encodeURIComponent(key)}`,
+        notes,
+        status: 'available',
+        stage: 'lead'
+      });
+    }
+
+    // Stop if a page adds nothing new (guards against the site repeating the last page)
+    if (newOnThisPage === 0) break;
+  }
+
+  console.log(`[allsop] scraped ${all.length} lots`);
+  return all;
 }
 
 function extractPostcode(text) {
@@ -55,16 +98,9 @@ function extractPostcode(text) {
   return match ? match[0].toUpperCase() : null;
 }
 
+// "£650,000+ " -> 650000 ; "Refer to Auctioneer" -> null
 function parsePrice(text) {
   if (!text) return null;
-  const match = text.replace(/,/g, '').match(/£?\s*(\d+)/);
+  const match = text.replace(/,/g, '').match(/£\s*(\d+)/);
   return match ? Number(match[1]) : null;
-}
-
-function normaliseUrl(href, base) {
-  try {
-    return new URL(href, base).toString();
-  } catch {
-    return href;
-  }
 }
