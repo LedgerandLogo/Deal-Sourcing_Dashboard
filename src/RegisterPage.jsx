@@ -32,16 +32,7 @@ export default function RegisterPage() {
     };
     const { error: err } = await supabase.from('buyers').insert(payload);
     if (err) { setError('Something went wrong. Please try again.'); setLoading(false); return; }
-    
-    // Also trigger webhook for Make.com automation
-    try {
-      await fetch('https://hook.eu1.make.com/hkbczc1dmhuijv3ys3bmepybw6d2anwu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...payload, email: form.email, source: 'ledgerandlot.org' }),
-      });
-    } catch {}
-    
+
     setSubmitted(true);
     setLoading(false);
   };
