@@ -29,7 +29,7 @@ function DealCard({ deal, featured }) {
       )}
       <div style={{ background: '#1a3c5e', padding: '12px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>{maskPostcode(deal.postcode)}</span>
-        <BMVBadge pct={deal.bmv_discount_pct} />
+        <span style={{ marginRight: featured ? 84 : 0 }}><BMVBadge pct={deal.bmv_discount_pct} /></span>
       </div>
       <div style={{ padding: '18px' }}>
         <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>
@@ -111,7 +111,7 @@ export default function DealsPage() {
       <div style={{ background: '#1a3c5e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'center', gap: '3rem', fontSize: 13 }}>
         <span>Active Deals: {totalActive}</span>
         <span>Multiple UK Locations</span>
-        <span>30%+ Below Market Value</span>
+        <span>Est. 25%+ Below Market Value</span>
       </div>
 
       {loading ? (
