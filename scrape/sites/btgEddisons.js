@@ -20,6 +20,7 @@ const MAX_PAGES = 8;
 export async function scrapeBtgEddisons(page) {
   const all = [];
   const seen = new Set();
+  let withDate = 0;
 
   for (let p = 1; p <= MAX_PAGES; p++) {
     await page.goto(`${LIST_URL}?page=${p}`, {
@@ -50,7 +51,11 @@ export async function scrapeBtgEddisons(page) {
           href: link?.href || null,
           lot_number: paras.find((t) => /^\d+[A-Z]?$/i.test(t)) || null,
           price_text: paras.filter((t) => t.includes('£')).join(' ') || null,
-          auction_format: clean(tile.querySelector('.bg-brand-blue span.font-bold')?.textContent) || null
+          auction_format: clean(tile.querySelector('.bg-brand-blue span.font-bold')?.textContent) || null,
+          // the blue bar (and the tile as a whole) normally carries the auction date,
+          // e.g. "28th October 2026 Live Stream Auction"
+          blue_text: clean(tile.querySelector('.bg-brand-blue')?.textContent) || null,
+          tile_text: clean(tile.textContent) || null
         };
       })
     );
@@ -62,6 +67,8 @@ export async function scrapeBtgEddisons(page) {
       newOnThisPage++;
 
       const isBuyNow = /available for/i.test(t.price_text || '');
+      const auctionDate = extractAuctionDate(t.blue_text, t.tile_text);
+      if (auctionDate) withDate++;
       const notes = [
         t.auction_format,
         t.lot_number ? `Lot ${t.lot_number}` : null
@@ -74,6 +81,7 @@ export async function scrapeBtgEddisons(page) {
         asking_price: parsePrice(t.price_text),
         guide_price_text: t.price_text,
         auction_type: t.auction_format || 'Auction',
+        auction_date_text: auctionDate,
         price_type: isBuyNow ? 'Available For' : 'Guide Price',
         source_url: t.href,
         notes,
@@ -85,7 +93,10 @@ export async function scrapeBtgEddisons(page) {
     if (newOnThisPage === 0) break;
   }
 
-  console.log(`[btg-eddisons] scraped ${all.length} lots`);
+  console.log(`[btg-eddisons] scraped ${all.length} lots (${withDate} with an auction date)`);
+  if (all.length && withDate === 0) {
+    console.warn('[btg-eddisons] no auction dates found — the tile layout may have changed, re-run npm run inspect');
+  }
   return all;
 }
 
@@ -100,4 +111,16 @@ function parsePrice(text) {
   if (!text) return null;
   const match = text.replace(/,/g, '').match(/£\s*(\d+)/);
   return match ? Number(match[1]) : null;
+}
+
+// "28th October 2026 Live Stream Auction" -> "28th October 2026"
+// Also accepts "28 Oct 2026" or a day and month with no year.
+const DATE_RE = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)\.?(?:,?\s+(\d{4}))?\b/i;
+function extractAuctionDate(...texts) {
+  for (const text of texts) {
+    if (!text) continue;
+    const m = text.match(DATE_RE);
+    if (m) return m[0].replace(/\s+/g, ' ').trim();
+  }
+  return null;
 }

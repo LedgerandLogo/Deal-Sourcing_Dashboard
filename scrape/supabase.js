@@ -28,7 +28,7 @@ export async function insertNewDeals(lots) {
   const urls = lots.map(l => l.source_url).filter(Boolean);
   const { data: existing, error: fetchErr } = await supabase
     .from('deals')
-    .select('source_url')
+    .select('source_url, auction_date_text')
     .in('source_url', urls);
 
   if (fetchErr) {
@@ -38,6 +38,26 @@ export async function insertNewDeals(lots) {
 
   const existingUrls = new Set((existing || []).map(r => r.source_url));
   const newLots = lots.filter(l => !existingUrls.has(l.source_url));
+
+  // Lots we already hold but saved without an auction date: fill the date in now.
+  const missingDate = new Set(
+    (existing || []).filter(r => !r.auction_date_text).map(r => r.source_url)
+  );
+  let datesFilled = 0;
+  for (const lot of lots) {
+    if (!lot.auction_date_text || !missingDate.has(lot.source_url)) continue;
+    const { error: updErr } = await supabase
+      .from('deals')
+      .update({ auction_date_text: lot.auction_date_text })
+      .eq('source_url', lot.source_url)
+      .is('auction_date_text', null);
+    if (updErr) {
+      console.error('Could not back-fill auction date:', updErr.message);
+    } else {
+      datesFilled++;
+    }
+  }
+  if (datesFilled) console.log(`  back-filled auction date on ${datesFilled} existing lot(s)`);
 
   if (!newLots.length) {
     return { inserted: 0, skipped: lots.length, errors: [] };
