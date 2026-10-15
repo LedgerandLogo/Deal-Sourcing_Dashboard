@@ -67,7 +67,7 @@ export async function scrapeBtgEddisons(page) {
       newOnThisPage++;
 
       const isBuyNow = /available for/i.test(t.price_text || '');
-      const auctionDate = extractAuctionDate(t.blue_text, t.tile_text);
+      const auctionDate = extractAuctionDate(t.tile_text, t.blue_text, t.href);
       if (auctionDate) withDate++;
       const notes = [
         t.auction_format,
@@ -113,14 +113,44 @@ function parsePrice(text) {
   return match ? Number(match[1]) : null;
 }
 
-// "28th October 2026 Live Stream Auction" -> "28th October 2026"
-// Also accepts "28 Oct 2026" or a day and month with no year.
-const DATE_RE = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)\.?(?:,?\s+(\d{4}))?\b/i;
-function extractAuctionDate(...texts) {
-  for (const text of texts) {
+// Works out the auction date for a BTG lot and returns it as e.g. "28 October 2026".
+// BTG shows the date in three different ways, so we try each in turn:
+//   1. online/timed lots print "Auction Ends: 14/10/2026" on the card
+//   2. some cards spell the date out, e.g. "28th October 2026 Live Stream Auction"
+//   3. live-stream lots print no date, but their web address ends in the auction
+//      date as ddmmyy, e.g. .../properties/202608141025sq_85gb-281026/... = 28 Oct 2026
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+  'August', 'September', 'October', 'November', 'December'];
+const NUMERIC_DATE_RE = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/;
+const NAMED_DATE_RE = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)\.?(?:,?\s+(\d{4}))?\b/i;
+const URL_DATE_RE = /-(\d{2})(\d{2})(\d{2})(?=\/|$|\?)/g;
+
+function formatDate(year, month, day) {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  return `${day} ${MONTHS[month - 1]} ${year}`;
+}
+
+function extractAuctionDate(tileText, blueText, href) {
+  for (const text of [tileText, blueText]) {
     if (!text) continue;
-    const m = text.match(DATE_RE);
+    const m = text.match(NUMERIC_DATE_RE);
+    if (m) {
+      const d = formatDate(Number(m[3]), Number(m[2]), Number(m[1]));
+      if (d) return d;
+    }
+  }
+  for (const text of [blueText, tileText]) {
+    if (!text) continue;
+    const m = text.match(NAMED_DATE_RE);
     if (m) return m[0].replace(/\s+/g, ' ').trim();
+  }
+  if (href) {
+    const all = [...href.matchAll(URL_DATE_RE)];
+    const m = all[all.length - 1];
+    if (m) {
+      const d = formatDate(2000 + Number(m[3]), Number(m[2]), Number(m[1]));
+      if (d) return d;
+    }
   }
   return null;
 }
