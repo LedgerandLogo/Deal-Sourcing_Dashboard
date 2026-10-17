@@ -51,6 +51,11 @@ export async function scrapeSavills(page) {
         if (dateLine) {
           auctionDateText = dateLine.replace(/^to be offered on\s*/i, '').trim();
         }
+        // Many lots have no "to be offered on" line, but the auction is in the web
+        // address, e.g. /auctions/24-november-2026-246/ or /auctions/20--21-october-2026-244/
+        if (!auctionDateText) {
+          auctionDateText = dateFromUrl(lot.source_url || lot.auction_page_url);
+        }
 
         const postcodeMatch = lot.address.match(postcodeRegex);
         const postcode = postcodeMatch ? postcodeMatch[1].toUpperCase() : null;
@@ -78,4 +83,12 @@ export async function scrapeSavills(page) {
 
   console.log(`[savills] scraped ${deals.length} lots across ${uniqueAuctionLinks.length} auction(s)`);
   return deals;
+}
+
+function dateFromUrl(url) {
+  if (!url) return null;
+  const m = url.match(/\/auctions\/(\d{1,2})(?:--(\d{1,2}))?-(january|february|march|april|may|june|july|august|september|october|november|december)-(\d{4})-\d+\//i);
+  if (!m) return null;
+  const month = m[3].charAt(0).toUpperCase() + m[3].slice(1).toLowerCase();
+  return `${m[1]}${m[2] ? '-' + m[2] : ''} ${month} ${m[4]}`;
 }
