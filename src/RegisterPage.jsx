@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient.js';
+import { getAttribution } from './track.js';
 
 const AREAS = ['West London', 'North London', 'South London', 'East London', 'Birmingham', 'Manchester', 'Leeds', 'Nottingham', 'Sheffield', 'Nationwide'];
 const TYPES = ['Buy-to-Let', 'HMO', 'Flip / Refurb', 'Commercial', 'Development'];
@@ -11,6 +12,7 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const toggle = (arr, setArr, val) => {
     setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
@@ -19,6 +21,10 @@ export default function RegisterPage() {
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.email) {
       setError('Please fill in your name, phone and email.');
+      return;
+    }
+    if (!consent) {
+      setError('Please tick the box to agree to be contacted about deals.');
       return;
     }
     setLoading(true);
@@ -30,7 +36,22 @@ export default function RegisterPage() {
       max_budget: form.max_budget ? parseFloat(form.max_budget.replace(/[^0-9.]/g, '')) : null,
       notes: `Email: ${form.email}. ${form.notes}`.trim(),
     };
-    const { error: err } = await supabase.from('buyers').insert(payload);
+    // Also record where this buyer came from and that they agreed to be contacted.
+    // If that ever fails, fall back to the plain registration so nobody is lost.
+    const attr = getAttribution();
+    const withTracking = {
+      ...payload,
+      utm_source: attr.utm_source,
+      utm_medium: attr.utm_medium,
+      utm_campaign: attr.utm_campaign,
+      referrer_host: attr.referrer_host,
+      marketing_consent: true,
+      consent_at: new Date().toISOString(),
+    };
+    let { error: err } = await supabase.from('buyers').insert(withTracking);
+    if (err) {
+      ({ error: err } = await supabase.from('buyers').insert(payload));
+    }
     if (err) { setError('Something went wrong. Please try again.'); setLoading(false); return; }
 
     setSubmitted(true);
@@ -66,7 +87,8 @@ export default function RegisterPage() {
       <div style={{ ...s.card, textAlign: 'center' }}>
         <p style={{ fontSize: 15, color: '#444', lineHeight: 1.7 }}>
           Thank you for registering with <strong>Ledger & Lot</strong>.<br/>
-          You'll receive deal alerts by email and WhatsApp as soon as we have something that matches your criteria.<br/><br/>
+          You'll receive deal alerts by email and WhatsApp as soon as we have something that matches your criteria.<br/>
+          A welcome email is on its way to you now.<br/><br/>
           In the meantime, download our documents below.
         </p>
       </div>
@@ -117,6 +139,11 @@ export default function RegisterPage() {
 
         <label style={s.label}>Anything else? (optional)</label>
         <textarea style={{ ...s.input, height: 80, resize: 'vertical' }} placeholder="e.g. cash buyer, need HMO licence, min 7% yield..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
+
+        <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginTop: 18, fontSize: 13, color: '#444', lineHeight: 1.5, cursor: 'pointer' }}>
+          <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 3 }} />
+          <span>I agree that Ledger &amp; Lot may contact me by email, phone and WhatsApp about property deals that match my criteria. I can unsubscribe at any time.</span>
+        </label>
 
         {error && <p style={{ color: '#c0392b', fontSize: 13, marginTop: 8 }}>{error}</p>}
 

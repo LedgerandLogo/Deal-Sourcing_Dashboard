@@ -1,6 +1,10 @@
 // Ledger & Lot Public Deals Page v5
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient.js';
+import { attributionQuery } from './track.js';
+
+// Registration links keep the visitor's source (utm_* / referrer) so each sign-up can be traced to a channel.
+const REGISTER_HREF = '/register' + attributionQuery();
 
 function maskPostcode(postcode) {
   if (!postcode) return 'Area undisclosed';
@@ -47,7 +51,7 @@ function DealCard({ deal, featured }) {
         <div style={{ background: '#fff8e1', border: '1px solid #ffe082', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: '#795500', marginBottom: 14 }}>
           Full address &amp; comparables for registered buyers only
         </div>
-        <a href="/register" style={{ display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: '11px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
+        <a href={REGISTER_HREF} style={{ display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: '11px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
           Get Full Details -&gt;
         </a>
       </div>
@@ -92,7 +96,7 @@ export default function DealsPage() {
           <span style={{ fontWeight: 700, fontSize: 18, color: '#1a3c5e', letterSpacing: '-0.3px' }}>Ledger & Lot</span>
           <span style={{ fontSize: 12, color: '#888', marginLeft: 8 }}>Property Sourcing</span>
         </div>
-        <a href="/register" style={{ background: '#1a3c5e', color: '#fff', padding: '8px 18px', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+        <a href={REGISTER_HREF} style={{ background: '#1a3c5e', color: '#fff', padding: '8px 18px', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
           Register as Buyer
         </a>
       </div>
@@ -103,7 +107,7 @@ export default function DealsPage() {
         <p style={{ opacity: 0.85, margin: '0 0 24px', fontSize: 16, maxWidth: 480, marginLeft: 'auto', marginRight: 'auto' }}>
           Below-market-value properties sourced across the UK. Register free to receive full addresses and details.
         </p>
-        <a href="/register" style={{ background: '#fff', color: '#1a3c5e', padding: '13px 32px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15, display: 'inline-block' }}>
+        <a href={REGISTER_HREF} style={{ background: '#fff', color: '#1a3c5e', padding: '13px 32px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15, display: 'inline-block' }}>
           Register Free -&gt; Get Full Details
         </a>
       </div>
@@ -120,7 +124,7 @@ export default function DealsPage() {
         <div style={{ textAlign: 'center', padding: '4rem' }}>
           <p style={{ color: '#888', fontSize: 16 }}>No active deals right now.</p>
           <p style={{ color: '#aaa', fontSize: 14 }}>Register to be first notified when new deals drop.</p>
-          <a href="/register" style={{ background: '#1a3c5e', color: '#fff', padding: '12px 28px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, display: 'inline-block', marginTop: 16 }}>Register Now</a>
+          <a href={REGISTER_HREF} style={{ background: '#1a3c5e', color: '#fff', padding: '12px 28px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, display: 'inline-block', marginTop: 16 }}>Register Now</a>
         </div>
       ) : (
         <>
@@ -188,7 +192,7 @@ export default function DealsPage() {
       <div style={{ background: '#1a3c5e', color: '#fff', textAlign: 'center', padding: '3rem 1.5rem', marginTop: '2rem' }}>
         <h2 style={{ fontSize: 24, fontWeight: 700, margin: '0 0 12px' }}>Want First Access to Every Deal?</h2>
         <p style={{ opacity: 0.8, margin: '0 0 24px', fontSize: 15 }}>Join our cash buyer list. Free to register, no obligation.</p>
-        <a href="/register" style={{ background: '#fff', color: '#1a3c5e', padding: '13px 32px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15, display: 'inline-block' }}>
+        <a href={REGISTER_HREF} style={{ background: '#fff', color: '#1a3c5e', padding: '13px 32px', borderRadius: 8, fontWeight: 700, textDecoration: 'none', fontSize: 15, display: 'inline-block' }}>
           Register as a Cash Buyer
         </a>
       </div>
