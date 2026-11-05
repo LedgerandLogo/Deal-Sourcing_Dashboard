@@ -46,6 +46,27 @@ export function attributionQuery() {
   return qs ? `?${qs}` : '';
 }
 
+// Anonymous visitor id: a random value kept in sessionStorage only. It is not a
+// cookie, is never linked to a name, email or IP address, and disappears when the
+// browser tab is closed. It lets us count people instead of raw page loads.
+let memorySessionId = null;
+function getSessionId() {
+  try {
+    let id = sessionStorage.getItem('ll_sid');
+    if (!id) {
+      id = (window.crypto && window.crypto.randomUUID)
+        ? window.crypto.randomUUID()
+        : Math.random().toString(36).slice(2) + Date.now().toString(36);
+      sessionStorage.setItem('ll_sid', id);
+    }
+    return id.slice(0, 64);
+  } catch {
+    // Storage blocked: fall back to an id that lasts for this page load only.
+    if (!memorySessionId) memorySessionId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    return memorySessionId.slice(0, 64);
+  }
+}
+
 export function trackPageView() {
   try {
     const params = new URLSearchParams(window.location.search);
@@ -63,6 +84,7 @@ export function trackPageView() {
     supabase.from('page_views').insert({
       path: path.slice(0, 100),
       ...a,
+      session_id: getSessionId(),
       device: window.matchMedia && window.matchMedia('(max-width: 768px)').matches ? 'mobile' : 'desktop',
     }).then(() => {}, () => {});
   } catch {

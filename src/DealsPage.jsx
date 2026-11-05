@@ -1,5 +1,5 @@
 // Ledger & Lot Public Deals Page v5
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from './supabaseClient.js';
 import { attributionQuery } from './track.js';
 
@@ -11,6 +11,17 @@ function maskPostcode(postcode) {
   const parts = postcode.trim().split(' ');
   if (parts.length < 2 || !parts[1]) return parts[0] + '**';
   return parts[0] + ' ' + parts[1][0] + '**';
+}
+
+// Public search only looks at what the site already shows publicly: the postcode
+// district (e.g. "M1", "LE5") and the short description. Full postcodes are never matched.
+function dealMatches(deal, query) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const compact = needle.replace(/\s+/g, '');
+  const district = (deal.postcode || '').trim().split(/\s+/)[0].toLowerCase();
+  if (district && district.startsWith(compact)) return true;
+  return (deal.notes || '').toLowerCase().includes(needle);
 }
 
 function BMVBadge({ pct }) {
@@ -63,6 +74,7 @@ export default function DealsPage() {
   const [deals, setDeals] = useState([]);
   const [featuredDeals, setFeaturedDeals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     Promise.all([
@@ -87,6 +99,10 @@ export default function DealsPage() {
   }, []);
 
   const totalActive = featuredDeals.length + deals.length;
+  const shownFeatured = useMemo(() => featuredDeals.filter(d => dealMatches(d, query)), [featuredDeals, query]);
+  const shownDeals = useMemo(() => deals.filter(d => dealMatches(d, query)), [deals, query]);
+  const shownCount = shownFeatured.length + shownDeals.length;
+  const searching = query.trim() !== '';
 
   return (
     <div style={{ fontFamily: 'Segoe UI, Arial, sans-serif', background: '#f4f6f9', minHeight: '100vh' }}>
@@ -118,6 +134,35 @@ export default function DealsPage() {
         <span>Est. 25%+ Below Market Value</span>
       </div>
 
+      {!loading && totalActive > 0 && (
+        <div style={{ maxWidth: 960, margin: '1.75rem auto 0', padding: '0 1.5rem' }}>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search deals by postcode area (e.g. M1, LE5) or keyword"
+              aria-label="Search deals"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '12px 40px 12px 14px', borderRadius: 10, border: '1px solid #d5dbe3', fontSize: 16, background: '#fff', fontFamily: 'inherit' }}
+            />
+            {searching && (
+              <button
+                onClick={() => setQuery('')}
+                aria-label="Clear search"
+                style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', fontSize: 20, lineHeight: 1, color: '#888', cursor: 'pointer', padding: '4px 8px' }}
+              >
+                &times;
+              </button>
+            )}
+          </div>
+          {searching && shownCount > 0 && (
+            <p style={{ fontSize: 13, color: '#888', margin: '8px 2px 0' }}>
+              {shownCount} {shownCount === 1 ? 'deal' : 'deals'} found
+            </p>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <p style={{ textAlign: 'center', padding: '4rem', color: '#888' }}>Loading deals...</p>
       ) : totalActive === 0 ? (
@@ -128,7 +173,15 @@ export default function DealsPage() {
         </div>
       ) : (
         <>
-          {featuredDeals.length > 0 && (
+          {searching && shownCount === 0 && (
+            <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+              <p style={{ color: '#888', fontSize: 16, margin: '0 0 6px' }}>No deals match &ldquo;{query.trim()}&rdquo;.</p>
+              <p style={{ color: '#aaa', fontSize: 14, margin: '0 0 16px' }}>New deals are added regularly. Register to be told when one matches.</p>
+              <a href={REGISTER_HREF} style={{ background: '#1a3c5e', color: '#fff', padding: '12px 28px', borderRadius: 8, textDecoration: 'none', fontWeight: 600, display: 'inline-block' }}>Register Free</a>
+            </div>
+          )}
+
+          {shownFeatured.length > 0 && (
             <div style={{ maxWidth: 960, margin: '2.5rem auto 0', padding: '0 1.5rem' }}>
               <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1a3c5e', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: '#d4a017' }}>&#9733;</span> Featured Deals
@@ -137,22 +190,22 @@ export default function DealsPage() {
                 Our top hand-picked opportunities this week.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                {featuredDeals.map(deal => (
+                {shownFeatured.map(deal => (
                   <DealCard key={deal.id} deal={deal} featured />
                 ))}
               </div>
             </div>
           )}
 
-          {deals.length > 0 && (
+          {shownDeals.length > 0 && (
             <div style={{ maxWidth: 960, margin: '2.5rem auto', padding: '0 1.5rem' }}>
-              {featuredDeals.length > 0 && (
+              {shownFeatured.length > 0 && (
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1a3c5e', margin: '0 0 1.25rem' }}>
                   All Deals
                 </h2>
               )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                {deals.map(deal => (
+                {shownDeals.map(deal => (
                   <DealCard key={deal.id} deal={deal} />
                 ))}
               </div>

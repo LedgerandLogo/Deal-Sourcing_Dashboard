@@ -74,6 +74,16 @@ function ArchivedBadge() {
   );
 }
 
+function textMatches(query, fields) {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return true;
+  const compact = needle.replace(/\s+/g, '');
+  return fields.some(f => {
+    const v = String(f || '').toLowerCase();
+    return v.includes(needle) || v.replace(/\s+/g, '').includes(compact);
+  });
+}
+
 export default function DealDashboard({ userId }) {
   const [deals, setDeals] = useState([]);
   const [buyers, setBuyers] = useState([]);
@@ -83,6 +93,7 @@ export default function DealDashboard({ userId }) {
   const [editingBuyer, setEditingBuyer] = useState(null);
   const [filterStage, setFilterStage] = useState('all');
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
 
   const loadData = useCallback(async () => {
     const [dealsRes, buyersRes] = await Promise.all([
@@ -122,10 +133,21 @@ export default function DealDashboard({ userId }) {
   }, [activeDeals, archivedDeals, deals]);
 
   const filteredDeals = useMemo(() => {
-    if (filterStage === 'archived') return archivedDeals;
-    if (filterStage === 'all') return activeDeals;
-    return activeDeals.filter(d => d.stage === filterStage);
-  }, [activeDeals, archivedDeals, filterStage]);
+    let list;
+    if (filterStage === 'archived') list = archivedDeals;
+    else if (filterStage === 'all') list = activeDeals;
+    else list = activeDeals.filter(d => d.stage === filterStage);
+    if (!query.trim()) return list;
+    return list.filter(d => {
+      const buyer = buyers.find(b => b.id === d.buyer_id);
+      return textMatches(query, [d.address, d.postcode, d.seller_name, d.seller_phone, d.notes, d.source, buyer && buyer.name]);
+    });
+  }, [activeDeals, archivedDeals, filterStage, query, buyers]);
+
+  const filteredBuyers = useMemo(
+    () => buyers.filter(b => textMatches(query, [b.name, b.phone, b.areas, b.notes])),
+    [buyers, query]
+  );
 
   const dealsByStage = useMemo(() => {
     const map = {};
@@ -202,8 +224,8 @@ export default function DealDashboard({ userId }) {
           <p style={{ fontSize: 13, color: '#666', margin: '4px 0 0' }}>Below-market-value sourcing pipeline</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setView('pipeline')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: view === 'pipeline' ? '#f0f0f0' : '#fff', cursor: 'pointer' }}>Pipeline</button>
-          <button onClick={() => setView('buyers')} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: view === 'buyers' ? '#f0f0f0' : '#fff', cursor: 'pointer' }}>Buyers</button>
+          <button onClick={() => { setView('pipeline'); setQuery(''); }} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: view === 'pipeline' ? '#f0f0f0' : '#fff', cursor: 'pointer' }}>Pipeline</button>
+          <button onClick={() => { setView('buyers'); setQuery(''); }} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #ccc', background: view === 'buyers' ? '#f0f0f0' : '#fff', cursor: 'pointer' }}>Buyers</button>
         </div>
       </div>
 
@@ -212,6 +234,22 @@ export default function DealDashboard({ userId }) {
           {error}
         </div>
       )}
+
+      <div style={{ position: 'relative' }}>
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={view === 'pipeline' ? 'Search deals: address, postcode, seller, buyer, notes' : 'Search buyers: name, phone, areas, notes'}
+          aria-label={view === 'pipeline' ? 'Search deals' : 'Search buyers'}
+          style={{ width: '100%', boxSizing: 'border-box', padding: '10px 36px 10px 12px', borderRadius: 8, border: '1px solid #ccc', fontSize: 14 }}
+        />
+        {query && (
+          <button onClick={() => setQuery('')} aria-label="Clear search" style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', fontSize: 18, lineHeight: 1, color: '#888', cursor: 'pointer', padding: '4px 8px' }}>
+            ×
+          </button>
+        )}
+      </div>
 
       <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 500, color: '#666' }}>Legal documents:</span>
@@ -250,7 +288,9 @@ export default function DealDashboard({ userId }) {
 
           {filteredDeals.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 0', color: '#999', fontSize: 14 }}>
-              {filterStage === 'archived' ? 'No archived deals yet.' : 'No deals here yet. Add one to start tracking it.'}
+              {query.trim()
+                ? `No deals match "${query.trim()}" in this view.`
+                : filterStage === 'archived' ? 'No archived deals yet.' : 'No deals here yet. Add one to start tracking it.'}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -305,13 +345,13 @@ export default function DealDashboard({ userId }) {
               + Add buyer
             </button>
           </div>
-          {buyers.length === 0 ? (
+          {filteredBuyers.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem 0', color: '#999', fontSize: 14 }}>
-              No cash buyers logged yet.
+              {query.trim() ? `No buyers match "${query.trim()}".` : 'No cash buyers logged yet.'}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-              {buyers.map(buyer => (
+              {filteredBuyers.map(buyer => (
                 <div key={buyer.id} style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: 10, padding: '1rem 1.25rem' }}>
                   <p style={{ fontWeight: 500, fontSize: 15, margin: 0 }}>{buyer.name || 'Unnamed buyer'}</p>
                   <p style={{ fontSize: 13, color: '#666', margin: '4px 0 0' }}>{buyer.phone || 'No phone'}</p>
