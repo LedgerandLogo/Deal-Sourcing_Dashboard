@@ -4,6 +4,8 @@ import { getAttribution } from './track.js';
 
 const AREAS = ['West London', 'North London', 'South London', 'East London', 'Birmingham', 'Manchester', 'Leeds', 'Nottingham', 'Sheffield', 'Nationwide'];
 const TYPES = ['Buy-to-Let', 'HMO', 'Flip / Refurb', 'Commercial', 'Development'];
+const FUNDING = ['Cash', 'Bridging / short-term finance', 'Mortgage / other finance'];
+const MIN_LOT_PRICE = 80000;
 
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', areas: '', max_budget: '', notes: '' });
@@ -13,14 +15,25 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [funding, setFunding] = useState('');
 
   const toggle = (arr, setArr, val) => {
     setArr(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
   };
 
+  const budgetNum = parseFloat(String(form.max_budget).replace(/[^0-9.]/g, '')) || 0;
+
   const handleSubmit = async () => {
     if (!form.name || !form.phone || !form.email) {
       setError('Please fill in your name, phone and email.');
+      return;
+    }
+    if (budgetNum <= 0) {
+      setError('Please enter your maximum budget per deal.');
+      return;
+    }
+    if (!funding) {
+      setError('Please tell us how you plan to buy (cash or finance).');
       return;
     }
     if (!consent) {
@@ -33,8 +46,8 @@ export default function RegisterPage() {
       name: form.name,
       phone: form.phone,
       areas: [...selectedAreas, ...selectedTypes].join(', ') || form.areas,
-      max_budget: form.max_budget ? parseFloat(form.max_budget.replace(/[^0-9.]/g, '')) : null,
-      notes: `Email: ${form.email}. ${form.notes}`.trim(),
+      max_budget: budgetNum,
+      notes: `Email: ${form.email}. Funding: ${funding}. ${form.notes}`.trim(),
     };
     // Also record where this buyer came from and that they agreed to be contacted.
     // If that ever fails, fall back to the plain registration so nobody is lost.
@@ -134,8 +147,17 @@ export default function RegisterPage() {
           {TYPES.map(t => <span key={t} style={s.chip(selectedTypes.includes(t))} onClick={() => toggle(selectedTypes, setSelectedTypes, t)}>{t}</span>)}
         </div>
 
-        <label style={s.label}>Maximum Budget</label>
-        <input style={s.input} placeholder="e.g. £250,000" value={form.max_budget} onChange={e => setForm({...form, max_budget: e.target.value})} />
+        <label style={s.label}>Maximum Budget per Deal *</label>
+        <input style={s.input} placeholder="e.g. £150,000" value={form.max_budget} onChange={e => setForm({...form, max_budget: e.target.value})} />
+        <p style={{ fontSize: 12, color: '#888', margin: '6px 0 0' }}>The auction lots we list start at £80,000, so we only send deals within your budget.</p>
+        {budgetNum > 0 && budgetNum < MIN_LOT_PRICE && (
+          <p style={{ fontSize: 12, color: '#b9770e', margin: '6px 0 0' }}>Heads up: that is below our lowest-priced lots, so you may not see many matches yet. You can still register.</p>
+        )}
+
+        <label style={s.label}>How will you buy? *</label>
+        <div style={{ marginTop: 4 }}>
+          {FUNDING.map(f => <span key={f} style={s.chip(funding === f)} onClick={() => setFunding(f)}>{f}</span>)}
+        </div>
 
         <label style={s.label}>Anything else? (optional)</label>
         <textarea style={{ ...s.input, height: 80, resize: 'vertical' }} placeholder="e.g. cash buyer, need HMO licence, min 7% yield..." value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} />
