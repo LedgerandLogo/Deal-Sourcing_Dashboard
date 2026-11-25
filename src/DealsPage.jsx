@@ -63,7 +63,7 @@ function DealCard({ deal, featured }) {
           Full address &amp; comparables for registered buyers only
         </div>
         <a href={REGISTER_HREF} style={{ display: 'block', textAlign: 'center', background: '#1a3c5e', color: '#fff', padding: '11px', borderRadius: 8, textDecoration: 'none', fontWeight: 700, fontSize: 14 }}>
-          Get Full Details -&gt;
+          Register free to see the full address
         </a>
       </div>
     </div>
@@ -134,6 +134,21 @@ export default function DealsPage() {
         <span>Est. 25%+ Below Market Value</span>
       </div>
 
+      <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '1.5rem' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '1.5rem 2.5rem', justifyContent: 'center' }}>
+          {[
+            { title: 'The full address', text: 'Every deal\u2019s exact location, released once you register.' },
+            { title: 'The comparables behind each value', text: 'See the Land Registry sales our estimated market value is based on.' },
+            { title: 'Free, no obligation', text: 'Registering costs nothing and you are not committed to buy.' },
+          ].map(item => (
+            <div key={item.title} style={{ flex: '1 1 230px', maxWidth: 290 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#1a3c5e', marginBottom: 4 }}>{item.title}</div>
+              <div style={{ fontSize: 13, color: '#555', lineHeight: 1.55 }}>{item.text}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {!loading && totalActive > 0 && (
         <div style={{ maxWidth: 960, margin: '1.75rem auto 0', padding: '0 1.5rem' }}>
           <div style={{ position: 'relative' }}>
@@ -187,7 +202,7 @@ export default function DealsPage() {
                 <span style={{ color: '#d4a017' }}>&#9733;</span> Featured Deals
               </h2>
               <p style={{ fontSize: 13, color: '#888', margin: '0 0 1.25rem' }}>
-                Our top hand-picked opportunities this week.
+                Our top opportunities this week.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 {shownFeatured.map(deal => (
