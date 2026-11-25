@@ -28,7 +28,7 @@ function BMVBadge({ pct }) {
   if (!pct) return null;
   const color = pct >= 25 ? '#c0392b' : pct >= 20 ? '#e67e22' : '#27ae60';
   return (
-    <span style={{ background: color, color: '#fff', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, display: 'inline-block' }}>
+    <span title="Auction guide price compared with our estimated market value" style={{ background: color, color: '#fff', borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700, display: 'inline-block' }}>
       {pct.toFixed(1)}% BMV
     </span>
   );
@@ -47,6 +47,9 @@ function DealCard({ deal, featured }) {
         <span style={{ marginRight: featured ? 84 : 0 }}><BMVBadge pct={deal.bmv_discount_pct} /></span>
       </div>
       <div style={{ padding: '18px' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: 0.6, margin: '0 0 2px' }}>
+          Auction guide price
+        </div>
         <div style={{ fontSize: 28, fontWeight: 800, color: '#1a1a1a', margin: '0 0 4px' }}>
           £{deal.asking_price?.toLocaleString() || 'POA'}
         </div>
@@ -131,7 +134,7 @@ export default function DealsPage() {
       <div style={{ background: '#1a3c5e', color: '#fff', padding: '12px 24px', display: 'flex', justifyContent: 'center', gap: '3rem', fontSize: 13 }}>
         <span>Active Deals: {totalActive}</span>
         <span>Multiple UK Locations</span>
-        <span>Est. 25%+ Below Market Value</span>
+        <span>Guide prices est. 25%+ below market value</span>
       </div>
 
       <div style={{ background: '#fff', borderBottom: '1px solid #e8e8e8', padding: '1.5rem' }}>
@@ -236,7 +239,7 @@ export default function DealsPage() {
             Ledger &amp; Lot is a UK property deal-sourcing service. We track auction listings across England, including Savills, Allsop, and BTG Eddisons, and shortlist below-market-value opportunities for registered cash buyers. We are a sourcing agent, not an estate agent, lender, or investment adviser: we identify and pass on deals in exchange for a finder's fee, agreed up front via the Property Sourcing Agreement below. We hold no client funds and do not manage property on anyone's behalf.
           </p>
           <p style={{ fontSize: 13, color: '#888', lineHeight: 1.6, margin: 0 }}>
-            Estimated market values are calculated from HM Land Registry Price Paid Data comparables, matched by property type and postcode district. They are automated estimates for guidance only, not a RICS valuation or formal survey. Always carry out independent due diligence, including your own valuation, before making an offer. Ledger &amp; Lot (ledgerandlot.org) is not affiliated with, and has no connection to, any similarly-named business operating in other markets.
+            Estimated market values are calculated from HM Land Registry Price Paid Data comparables, matched by property type and postcode district. They are automated estimates for guidance only, not a RICS valuation or formal survey. Below-market-value (BMV) percentages compare the auction guide price with our estimated market value. Lots often sell above their guide price, so the price paid may be higher than the guide shown. Always carry out independent due diligence, including your own valuation, before making an offer. Ledger &amp; Lot (ledgerandlot.org) is not affiliated with, and has no connection to, any similarly-named business operating in other markets.
           </p>
         </div>
       </div>
