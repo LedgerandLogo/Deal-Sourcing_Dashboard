@@ -1,0 +1,36 @@
+name: Revalue deals
+
+# Runs the Land Registry valuation script on live deals as soon as the
+# "Daily deal scrape" workflow finishes, so newly scraped lots get a real
+# valuation within minutes. Can also be started by hand from the Actions tab.
+on:
+  workflow_run:
+    workflows: ["Daily deal scrape"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: revalue-deals
+  cancel-in-progress: false
+
+jobs:
+  revalue:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install requests
+        run: python -m pip install requests
+
+      - name: Revalue live deals
+        working-directory: valuation
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python update_market_values.py
